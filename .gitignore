@@ -1,0 +1,29 @@
+# Rust build artifacts
+target/
+
+# Dependencies (legacy - no longer used)
+node_modules/
+
+# TypeScript build output (legacy)
+dist/
+
+# TinyVegeta runtime files
+.tinyvegeta
+
+# Legacy caches
+.wwebjs_cache
+
+# Logs and archives
+*.log
+*.tar.gz
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,78 @@
+name: Security
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  audit-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify command wiring
+        run: ./scripts/verify-wiring.sh
+
+      - name: Automation tests
+        run: npm test
+
+      - name: Audit (fail on high/critical)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Compute audit risk score
+        run: |
+          npm audit --omit=dev --json > audit.json || true
+          HIGH=$(jq -r '.metadata.vulnerabilities.high // 0' audit.json)
+          CRIT=$(jq -r '.metadata.vulnerabilities.critical // 0' audit.json)
+          SCORE=$((HIGH + (CRIT * 2)))
+          echo "Security risk score: $SCORE (high=$HIGH critical=$CRIT)"
+          if [ "$SCORE" -gt 0 ]; then
+            echo "::warning::Security risk score is non-zero: $SCORE"
+          fi
+
+      - name: Secret scan (TruffleHog)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          extra_args: --only-verified
+
+      - name: Dependency diff gate
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '(^|/)(package\\.json|package-lock\\.json)$' || true)"
+          if [ -z "$CHANGED" ]; then
+            echo "No dependency manifest changes detected."
+            exit 0
+          fi
+
+          echo "Dependency manifest changed:"
+          echo "$CHANGED"
+
+          LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          echo "PR labels: $LABELS"
+          echo "$LABELS" | grep -q '"deps-reviewed"' || {
+            echo "::error::Dependency files changed. Add PR label 'deps-reviewed' after review."
+            exit 1
+          }

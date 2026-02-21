@@ -110,6 +110,15 @@ Converted `heartbeat.md` into a production autonomic-maintenance spec and wired 
 - Added CLI support for verbose single-agent heartbeat:
   - `tinyvegeta heartbeat --agent assistant --verbose`
 
+### 2026-02-21 - Shared Workspace Context Layer
+
+Improved context architecture to support shared swarm-wide files in workspace root:
+
+- Auto-bootstrap shared files in `~/tinyvegeta-workspace/`:
+  - `BRAIN.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, `HEARTBEAT.md`, `CLIENTS.md`, `PLAYBOOK.md`
+- Context loader now checks shared workspace root before agent-local files for these docs.
+- Agent-local files remain supported as fallback/override paths.
+
 ### 2026-02-20 - Deterministic Routing + SQLite Ops Memory + Execution Contracts
 
 Implemented requested reliability upgrades in Rust runtime:

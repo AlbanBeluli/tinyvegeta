@@ -27,8 +27,10 @@ impl AgentContext {
         let home = get_home_dir()?;
         let project_soul = default_soul_path();
         let project_root = default_project_root();
+        let workspace_root = infer_workspace_root(working_dir);
 
         let brain = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("BRAIN.md")),
             working_dir.as_ref().map(|d| d.join("BRAIN.md")),
             Some(home.join("BRAIN.md")),
             project_root.as_ref().map(|d| d.join("BRAIN.md")),
@@ -42,36 +44,42 @@ impl AgentContext {
         ]);
 
         let identity = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("IDENTITY.md")),
             working_dir.as_ref().map(|d| d.join("IDENTITY.md")),
             Some(home.join("IDENTITY.md")),
             project_root.as_ref().map(|d| d.join("IDENTITY.md")),
         ]);
 
         let user = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("USER.md")),
             working_dir.as_ref().map(|d| d.join("USER.md")),
             Some(home.join("USER.md")),
             project_root.as_ref().map(|d| d.join("USER.md")),
         ]);
 
         let tools = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("TOOLS.md")),
             working_dir.as_ref().map(|d| d.join("TOOLS.md")),
             Some(home.join("TOOLS.md")),
             project_root.as_ref().map(|d| d.join("TOOLS.md")),
         ]);
 
         let heartbeat = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("HEARTBEAT.md")),
             working_dir.as_ref().map(|d| d.join("HEARTBEAT.md")),
             Some(home.join("HEARTBEAT.md")),
             project_root.as_ref().map(|d| d.join("HEARTBEAT.md")),
         ]);
 
         let clients = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("CLIENTS.md")),
             working_dir.as_ref().map(|d| d.join("CLIENTS.md")),
             Some(home.join("CLIENTS.md")),
             project_root.as_ref().map(|d| d.join("CLIENTS.md")),
         ]);
 
         let playbook = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("PLAYBOOK.md")),
             working_dir.as_ref().map(|d| d.join("PLAYBOOK.md")),
             Some(home.join("PLAYBOOK.md")),
             project_root.as_ref().map(|d| d.join("PLAYBOOK.md")),
@@ -194,6 +202,10 @@ fn default_project_root() -> Option<PathBuf> {
     directories::UserDirs::new().map(|u| u.home_dir().join("ai").join("tinyvegeta"))
 }
 
+fn infer_workspace_root(working_dir: Option<&PathBuf>) -> Option<PathBuf> {
+    working_dir.and_then(|wd| wd.parent().map(std::path::Path::to_path_buf))
+}
+
 /// Try to load a file from multiple possible locations.
 fn load_file(paths: &[Option<PathBuf>]) -> Option<String> {
     for path in paths.iter().flatten() {
@@ -313,6 +325,9 @@ fn create_default_playbook() -> String {
 /// Initialize context files for a new agent.
 pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), Error> {
     std::fs::create_dir_all(working_dir)?;
+    if let Some(workspace_root) = working_dir.parent().map(std::path::Path::to_path_buf) {
+        ensure_workspace_context_files(&workspace_root)?;
+    }
 
     let soul_path = working_dir.join("SOUL.md");
     let memory_path = working_dir.join("MEMORY.md");
@@ -358,5 +373,28 @@ pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), E
         std::fs::write(&playbook_path, create_default_playbook())?;
     }
 
+    Ok(())
+}
+
+fn ensure_workspace_context_files(workspace_root: &PathBuf) -> Result<(), Error> {
+    std::fs::create_dir_all(workspace_root)?;
+
+    let files = [
+        ("BRAIN.md", create_default_brain()),
+        ("IDENTITY.md", create_default_identity()),
+        ("USER.md", create_default_user()),
+        ("TOOLS.md", create_default_tools()),
+        ("HEARTBEAT.md", create_default_heartbeat()),
+        ("CLIENTS.md", create_default_clients()),
+        ("PLAYBOOK.md", create_default_playbook()),
+    ];
+
+    for (name, content) in files {
+        let path = workspace_root.join(name);
+        if !path.exists() {
+            std::fs::write(&path, content)?;
+            tracing::info!("Created shared workspace {} at {}", name, path.display());
+        }
+    }
     Ok(())
 }

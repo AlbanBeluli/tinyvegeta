@@ -92,6 +92,22 @@ On setup/start, TinyVegeta now auto-bootstraps missing agent context files in ea
 
 - `SOUL.md`, `MEMORY.md`, `BRAIN.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, `HEARTBEAT.md`, `CLIENTS.md`, `PLAYBOOK.md`
 
+Shared workspace context (new):
+
+- TinyVegeta also bootstraps shared files at workspace root (for all agents):
+  - `~/tinyvegeta-workspace/BRAIN.md`
+  - `~/tinyvegeta-workspace/IDENTITY.md`
+  - `~/tinyvegeta-workspace/USER.md`
+  - `~/tinyvegeta-workspace/TOOLS.md`
+  - `~/tinyvegeta-workspace/HEARTBEAT.md`
+  - `~/tinyvegeta-workspace/CLIENTS.md`
+  - `~/tinyvegeta-workspace/PLAYBOOK.md`
+- Loader preference for these files is now:
+  1. workspace root (shared)
+  2. agent folder (local override/fallback)
+  3. `~/.tinyvegeta`
+  4. project fallback (`~/ai/tinyvegeta`)
+
 Then pair your Telegram:
 1. DM your Telegram bot to get a pairing code
 2. Approve from shell:

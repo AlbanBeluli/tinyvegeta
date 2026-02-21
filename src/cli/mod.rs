@@ -888,8 +888,7 @@ fn ensure_runtime_board_pack() -> Result<()> {
 /// Run the queue processor - processes incoming messages and sends responses.
 async fn run_queue_processor() -> Result<()> {
     use crate::config::load_settings;
-    use crate::core::{Queue, MessageData};
-    use crate::providers::create_provider;
+    use crate::core::Queue;
     use std::time::Duration;
     
     tracing::info!("Starting queue processor...");

@@ -9,4 +9,4 @@ pub mod conversation;
 pub mod queue;
 pub mod routing;
 
-pub use queue::{MessageData, Queue, QueueFile};
+pub use queue::{MessageData, Queue};

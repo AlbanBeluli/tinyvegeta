@@ -19,7 +19,7 @@ pub mod web;
 
 pub use cli::Commands;
 pub use config::{load_settings, Settings};
-pub use core::{Queue, MessageData, QueueFile};
+pub use core::{Queue, MessageData};
 pub use memory::{Memory, MemoryEntry, MemoryScope};
 pub use telegram::run_telegram_daemon;
 pub use heartbeat::{run_heartbeat_daemon, run_single_heartbeat};

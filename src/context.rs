@@ -342,6 +342,23 @@ fn create_default_playbook() -> String {
     .to_string()
 }
 
+fn create_default_agent_soul_extension(agent_id: &str) -> String {
+    let role_doc = match agent_id {
+        "assistant" | "ceo" => include_str!("../templates/agent-pack/default/ceo.md"),
+        "coder" | "coding" => include_str!("../templates/agent-pack/default/coding.md"),
+        "marketing" => include_str!("../templates/agent-pack/default/marketing.md"),
+        "operations" => include_str!("../templates/agent-pack/default/operations.md"),
+        "sales" => include_str!("../templates/agent-pack/default/sales.md"),
+        "security" => include_str!("../templates/agent-pack/default/security.md"),
+        "seo" => include_str!("../templates/agent-pack/default/seo.md"),
+        _ => "Role-specific extension not defined yet.",
+    };
+    format!(
+        "# Agent Soul Extension ({})\n\nThis is additive to shared workspace `SOUL.md`.\n\n{}\n",
+        agent_id, role_doc
+    )
+}
+
 /// Initialize context files for a new agent.
 pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), Error> {
     std::fs::create_dir_all(working_dir)?;
@@ -394,13 +411,7 @@ pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), E
         std::fs::write(&playbook_path, create_default_playbook())?;
     }
     if !agent_soul_extra_path.exists() {
-        std::fs::write(
-            &agent_soul_extra_path,
-            format!(
-                "# Agent Soul Extension ({})\n\n- Role-specific tone and constraints.\n- Keep this short and additive to workspace SOUL.md.\n",
-                agent_id
-            ),
-        )?;
+        std::fs::write(&agent_soul_extra_path, create_default_agent_soul_extension(agent_id))?;
     }
 
     Ok(())

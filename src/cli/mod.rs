@@ -1309,16 +1309,7 @@ fn build_runtime_context_block(
 }
 
 fn enforce_identity_guard(user_message: &str, response: String) -> String {
-    let user = user_message.to_lowercase();
-    let asks_identity = user.contains("who are you")
-        || user.contains("who r u")
-        || user.contains("what are you")
-        || user.contains("identify yourself")
-        || user.contains("your name");
-
-    if asks_identity {
-        return "I'm TinyVegeta, your AI orchestrator in this workspace.".to_string();
-    }
+    let _ = user_message;
 
     let lower = response.to_lowercase();
     let leaked_identity = lower.contains("i'm codex")

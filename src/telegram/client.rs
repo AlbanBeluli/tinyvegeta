@@ -121,6 +121,7 @@ pub async fn run_telegram_daemon() -> Result<(), Error> {
         teloxide::types::BotCommand::new("board", "Show board info"),
         teloxide::types::BotCommand::new("status", "Show daemon status"),
         teloxide::types::BotCommand::new("restart", "Restart TinyVegeta daemon"),
+        teloxide::types::BotCommand::new("upgrade", "Reinstall and restart TinyVegeta"),
         teloxide::types::BotCommand::new("doctor", "Run remote health checks"),
         teloxide::types::BotCommand::new("provider", "Show or set provider"),
         teloxide::types::BotCommand::new("models", "Alias for provider switch"),
@@ -201,6 +202,12 @@ async fn handle_message(bot: Bot, msg: Message) -> Result<(), RequestError> {
                         return Ok(());
                     }
                     cmd_restart(bot, msg).await?;
+                }
+                "/upgrade" => {
+                    if !ensure_approved_sender(&bot, &msg).await? {
+                        return Ok(());
+                    }
+                    cmd_upgrade(bot, msg.chat.id).await?;
                 }
                 "/doctor" => {
                     if !ensure_approved_sender(&bot, &msg).await? {
@@ -1426,6 +1433,83 @@ async fn cmd_restart(bot: Bot, msg: Message) -> Result<(), RequestError> {
     Ok(())
 }
 
+/// Handle /upgrade command.
+async fn cmd_upgrade(bot: Bot, chat_id: ChatId) -> Result<(), RequestError> {
+    bot.send_message(
+        chat_id,
+        "Starting upgrade:\n`cargo install --git https://github.com/AlbanBeluli/tinyvegeta --force`\nThis can take a few minutes.",
+    )
+    .await?;
+
+    let out = TokioCommand::new("cargo")
+        .args([
+            "install",
+            "--git",
+            "https://github.com/AlbanBeluli/tinyvegeta",
+            "--force",
+        ])
+        .output()
+        .await;
+
+    let summarize = |stdout: &[u8], stderr: &[u8]| -> String {
+        let text = format!(
+            "{}\n{}",
+            String::from_utf8_lossy(stdout),
+            String::from_utf8_lossy(stderr)
+        );
+        let mut picked = text.lines().rev().take(30).map(|s| s.to_string()).collect::<Vec<_>>();
+        picked.reverse();
+        let mut out = picked.join("\n");
+        if out.len() > 3500 {
+            out.truncate(3500);
+            out.push_str("\n...[truncated]");
+        }
+        out
+    };
+
+    match out {
+        Ok(output) => {
+            if !output.status.success() {
+                let summary = summarize(&output.stdout, &output.stderr);
+                bot.send_message(chat_id, format!("Upgrade failed:\n{}", summary))
+                    .await?;
+                return Ok(());
+            }
+
+            bot.send_message(chat_id, "Upgrade installed. Restarting TinyVegeta daemon...")
+                .await?;
+
+            let exe = std::env::current_exe()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "tinyvegeta".to_string());
+            let spawn_result = std::process::Command::new("nohup")
+                .arg(exe)
+                .arg("restart")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn();
+
+            match spawn_result {
+                Ok(_) => {
+                    bot.send_message(chat_id, "Upgrade complete. Restart triggered.")
+                        .await?;
+                }
+                Err(e) => {
+                    tracing::error!("Failed to spawn restart after upgrade: {}", e);
+                    bot.send_message(chat_id, format!("Upgrade succeeded, but restart failed: {}", e))
+                        .await?;
+                }
+            }
+        }
+        Err(e) => {
+            bot.send_message(chat_id, format!("Upgrade command failed: {}", e))
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
 const HELP_TEXT: &str = r#"TinyVegeta Commands:
 
 /help - Show this help
@@ -1435,6 +1519,7 @@ const HELP_TEXT: &str = r#"TinyVegeta Commands:
 /board discuss <topic> - Run board discussion
 /status - Show daemon status
 /restart - Restart TinyVegeta daemon
+/upgrade - Reinstall from Git and restart daemon
 /doctor - Run health checks
 /provider [name] - Show or switch provider
 /memory stats - Memory statistics

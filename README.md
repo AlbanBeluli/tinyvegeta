@@ -88,6 +88,10 @@ After setup:
 tinyvegeta start
 ```
 
+On setup/start, TinyVegeta now auto-bootstraps missing agent context files in each agent workspace:
+
+- `SOUL.md`, `MEMORY.md`, `BRAIN.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, `HEARTBEAT.md`, `CLIENTS.md`, `PLAYBOOK.md`
+
 Then pair your Telegram:
 1. DM your Telegram bot to get a pairing code
 2. Approve from shell:

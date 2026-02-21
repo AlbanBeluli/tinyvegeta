@@ -878,9 +878,21 @@ fn ensure_runtime_board_pack() -> Result<()> {
         let workspace = crate::board::resolve_workspace_root(&settings);
         std::fs::create_dir_all(&workspace)?;
         crate::board::install_default_pack(&mut settings, &workspace)?;
+        ensure_agent_context_stack(&settings)?;
         let path = crate::config::get_settings_path()?;
         std::fs::write(path, serde_json::to_string_pretty(&settings)?)?;
         tracing::info!("Applied runtime default board pack provisioning");
+    } else {
+        ensure_agent_context_stack(&settings)?;
+    }
+    Ok(())
+}
+
+fn ensure_agent_context_stack(settings: &crate::config::Settings) -> Result<()> {
+    for (agent_id, agent) in &settings.agents {
+        if let Some(wd) = agent.working_directory.as_ref() {
+            crate::context::init_agent_context(agent_id, wd)?;
+        }
     }
     Ok(())
 }
@@ -1735,6 +1747,7 @@ async fn cmd_setup() -> Result<()> {
 
     // Install default board pack (assistant as CEO + specialist members).
     crate::board::install_default_pack(&mut settings, &workspace_path)?;
+    ensure_agent_context_stack(&settings)?;
     println!("✓ Installed default board pack in {}", workspace_path.display());
     
     // Save settings

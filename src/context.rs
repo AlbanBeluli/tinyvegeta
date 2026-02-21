@@ -243,10 +243,86 @@ This file tracks important context for your work.
     .to_string()
 }
 
+fn create_default_brain() -> String {
+    r#"## active projects
+- [project] - status, next step
+
+## immediate actions
+- [what needs doing today]
+
+## background tasks
+- [what's running, what's done]
+"#
+    .to_string()
+}
+
+fn create_default_identity() -> String {
+    r#"# Identity
+
+You are TinyVegeta, an autonomous multi-agent orchestrator focused on measurable outcomes.
+"#
+    .to_string()
+}
+
+fn create_default_user() -> String {
+    r#"# User Profile
+
+Keep this concise and result-driven. Expand only when it changes execution behavior.
+"#
+    .to_string()
+}
+
+fn create_default_tools() -> String {
+    r#"# Tools
+
+List core tools and constraints. Verify availability before execution.
+"#
+    .to_string()
+}
+
+fn create_default_heartbeat() -> String {
+    r#"# HEARTBEAT.md
+
+1. Read BRAIN.md
+2. Detect stale/broken/overdue items
+3. Execute highest-leverage safe action
+4. Log event/decision/outcome
+5. Repeat
+"#
+    .to_string()
+}
+
+fn create_default_clients() -> String {
+    r#"# Clients
+
+- [client] - context, priority, next deliverable
+"#
+    .to_string()
+}
+
+fn create_default_playbook() -> String {
+    r#"# Playbook
+
+- Impact first
+- Fastest safe execution path
+- Owner + deadline for each action
+"#
+    .to_string()
+}
+
 /// Initialize context files for a new agent.
 pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), Error> {
+    std::fs::create_dir_all(working_dir)?;
+
     let soul_path = working_dir.join("SOUL.md");
     let memory_path = working_dir.join("MEMORY.md");
+    let brain_path = working_dir.join("BRAIN.md");
+    let identity_path = working_dir.join("IDENTITY.md");
+    let user_path = working_dir.join("USER.md");
+    let tools_path = working_dir.join("TOOLS.md");
+    let heartbeat_path = working_dir.join("HEARTBEAT.md");
+    let clients_path = working_dir.join("CLIENTS.md");
+    let playbook_path = working_dir.join("PLAYBOOK.md");
 
     if !soul_path.exists() {
         std::fs::write(&soul_path, create_default_soul(agent_id))?;
@@ -256,6 +332,30 @@ pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), E
     if !memory_path.exists() {
         std::fs::write(&memory_path, create_default_memory())?;
         tracing::info!("Created default MEMORY.md at {}", memory_path.display());
+    }
+
+    if !brain_path.exists() {
+        std::fs::write(&brain_path, create_default_brain())?;
+        tracing::info!("Created default BRAIN.md at {}", brain_path.display());
+    }
+
+    if !identity_path.exists() {
+        std::fs::write(&identity_path, create_default_identity())?;
+    }
+    if !user_path.exists() {
+        std::fs::write(&user_path, create_default_user())?;
+    }
+    if !tools_path.exists() {
+        std::fs::write(&tools_path, create_default_tools())?;
+    }
+    if !heartbeat_path.exists() {
+        std::fs::write(&heartbeat_path, create_default_heartbeat())?;
+    }
+    if !clients_path.exists() {
+        std::fs::write(&clients_path, create_default_clients())?;
+    }
+    if !playbook_path.exists() {
+        std::fs::write(&playbook_path, create_default_playbook())?;
     }
 
     Ok(())

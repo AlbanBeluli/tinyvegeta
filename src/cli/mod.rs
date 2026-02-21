@@ -1312,24 +1312,38 @@ fn enforce_identity_guard(user_message: &str, response: String) -> String {
     let _ = user_message;
 
     let lower = response.to_lowercase();
-    let leaked_identity = lower.contains("i'm codex")
-        || lower.contains("i am codex")
-        || lower.contains("i'm chatgpt")
-        || lower.contains("i am chatgpt")
-        || lower.contains("openai coding agent")
-        || lower.contains("your ai coding agent");
+    let normalized = lower
+        .replace('’', "'")
+        .replace('‘', "'")
+        .replace('`', "'");
+    let leaked_identity = normalized.contains("i'm codex")
+        || normalized.contains("i am codex")
+        || normalized.contains("im codex")
+        || normalized.contains("i'm chatgpt")
+        || normalized.contains("i am chatgpt")
+        || normalized.contains("im chatgpt")
+        || normalized.contains("openai coding agent")
+        || normalized.contains("your ai coding agent")
+        || (normalized.contains("codex") && normalized.contains("coding agent in this workspace"));
 
     if leaked_identity {
         let cleaned = response
             .lines()
             .filter(|line| {
-                let l = line.to_lowercase();
+                let l = line
+                    .to_lowercase()
+                    .replace('’', "'")
+                    .replace('‘', "'")
+                    .replace('`', "'");
                 !(l.contains("i'm codex")
                     || l.contains("i am codex")
+                    || l.contains("im codex")
                     || l.contains("i'm chatgpt")
                     || l.contains("i am chatgpt")
+                    || l.contains("im chatgpt")
                     || l.contains("openai coding agent")
-                    || l.contains("your ai coding agent"))
+                    || l.contains("your ai coding agent")
+                    || (l.contains("codex") && l.contains("coding agent in this workspace")))
             })
             .collect::<Vec<_>>()
             .join("\n")

@@ -699,9 +699,10 @@ fn suggest_memory_compaction(actions: &mut Vec<String>, warnings: &mut Vec<Strin
     }
     match crate::memory::Memory::compact(MemoryScope::Global, None) {
         Ok(report) => {
+            // CompactReport fields: merged, expired_removed, promoted, pruned.
             actions.push(format!(
-                "memory compact global deduped={} merged={} removed={} promoted={}",
-                report.deduped, report.merged, report.expired_removed, report.promoted
+                "memory compact global merged={} removed={} promoted={} pruned={}",
+                report.merged, report.expired_removed, report.promoted, report.pruned
             ));
             Memory::set(key, &today, MemoryScope::Global, None)?;
         }

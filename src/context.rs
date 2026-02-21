@@ -10,7 +10,8 @@ use crate::error::Error;
 /// Context files that get loaded for an agent.
 pub struct AgentContext {
     pub brain: Option<String>,
-    pub soul: Option<String>,
+    pub soul_shared: Option<String>,
+    pub soul_agent_extra: Option<String>,
     pub identity: Option<String>,
     pub user: Option<String>,
     pub tools: Option<String>,
@@ -36,11 +37,17 @@ impl AgentContext {
             project_root.as_ref().map(|d| d.join("BRAIN.md")),
         ]);
 
-        // Try multiple locations for each file
-        let soul = load_file(&[
-            working_dir.as_ref().map(|d| d.join("SOUL.md")),
+        // Shared SOUL: workspace-root first (swarm-wide default identity).
+        let soul_shared = load_file(&[
+            workspace_root.as_ref().map(|d| d.join("SOUL.md")),
             Some(home.join("SOUL.md")),
             project_soul,
+        ]);
+
+        // Agent-specific extra SOUL layer (optional).
+        let soul_agent_extra = load_file(&[
+            working_dir.as_ref().map(|d| d.join("AGENT_SOUL.md")),
+            working_dir.as_ref().map(|d| d.join("SOUL.md")),
         ]);
 
         let identity = load_file(&[
@@ -99,7 +106,8 @@ impl AgentContext {
 
         Ok(Self {
             brain,
-            soul,
+            soul_shared,
+            soul_agent_extra,
             identity,
             user,
             tools,
@@ -120,8 +128,19 @@ impl AgentContext {
             parts.push(format!("## Live Working Memory (BRAIN.md)\n\n{}", brain));
         }
 
-        if let Some(ref soul) = self.soul {
-            parts.push(format!("## Your Identity (SOUL.md)\n\n{}", soul));
+        if let Some(ref soul) = self.soul_shared {
+            parts.push(format!("## Shared Identity (workspace SOUL.md)\n\n{}", soul));
+        }
+
+        if let Some(ref soul_extra) = self.soul_agent_extra {
+            let duplicate = self
+                .soul_shared
+                .as_ref()
+                .map(|s| s.trim() == soul_extra.trim())
+                .unwrap_or(false);
+            if !duplicate {
+                parts.push(format!("## Agent Personality Extension (AGENT_SOUL.md / agent SOUL.md)\n\n{}", soul_extra));
+            }
         }
 
         if let Some(ref identity) = self.identity {
@@ -169,7 +188,8 @@ impl AgentContext {
     /// Check if any context was loaded.
     pub fn has_context(&self) -> bool {
         self.brain.is_some()
-            || self.soul.is_some()
+            || self.soul_shared.is_some()
+            || self.soul_agent_extra.is_some()
             || self.identity.is_some()
             || self.user.is_some()
             || self.tools.is_some()
@@ -338,6 +358,7 @@ pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), E
     let heartbeat_path = working_dir.join("HEARTBEAT.md");
     let clients_path = working_dir.join("CLIENTS.md");
     let playbook_path = working_dir.join("PLAYBOOK.md");
+    let agent_soul_extra_path = working_dir.join("AGENT_SOUL.md");
 
     if !soul_path.exists() {
         std::fs::write(&soul_path, create_default_soul(agent_id))?;
@@ -372,6 +393,15 @@ pub fn init_agent_context(agent_id: &str, working_dir: &PathBuf) -> Result<(), E
     if !playbook_path.exists() {
         std::fs::write(&playbook_path, create_default_playbook())?;
     }
+    if !agent_soul_extra_path.exists() {
+        std::fs::write(
+            &agent_soul_extra_path,
+            format!(
+                "# Agent Soul Extension ({})\n\n- Role-specific tone and constraints.\n- Keep this short and additive to workspace SOUL.md.\n",
+                agent_id
+            ),
+        )?;
+    }
 
     Ok(())
 }
@@ -380,6 +410,7 @@ fn ensure_workspace_context_files(workspace_root: &PathBuf) -> Result<(), Error>
     std::fs::create_dir_all(workspace_root)?;
 
     let files = [
+        ("SOUL.md", create_default_soul("shared")),
         ("BRAIN.md", create_default_brain()),
         ("IDENTITY.md", create_default_identity()),
         ("USER.md", create_default_user()),

@@ -115,9 +115,10 @@ Converted `heartbeat.md` into a production autonomic-maintenance spec and wired 
 Improved context architecture to support shared swarm-wide files in workspace root:
 
 - Auto-bootstrap shared files in `~/tinyvegeta-workspace/`:
-  - `BRAIN.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, `HEARTBEAT.md`, `CLIENTS.md`, `PLAYBOOK.md`
+  - `SOUL.md`, `BRAIN.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md`, `HEARTBEAT.md`, `CLIENTS.md`, `PLAYBOOK.md`
 - Context loader now checks shared workspace root before agent-local files for these docs.
 - Agent-local files remain supported as fallback/override paths.
+- Added agent extension file: `AGENT_SOUL.md` in each agent workspace for role-specific personality layers.
 
 ### 2026-02-20 - Deterministic Routing + SQLite Ops Memory + Execution Contracts
 

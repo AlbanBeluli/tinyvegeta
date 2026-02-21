@@ -1008,7 +1008,8 @@ async fn process_message(msg: &MessageData, settings: &crate::config::Settings, 
         tracing::warn!("Failed to load context: {}", e);
         AgentContext {
             brain: None,
-            soul: None,
+            soul_shared: None,
+            soul_agent_extra: None,
             identity: None,
             user: None,
             tools: None,
